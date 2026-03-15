@@ -31,8 +31,7 @@ async function evaluateSingle(
 
   switch (condition.method) {
     case "x402-payment": {
-      const actual = paymentVerified ? 1n : 0n;
-      return compare(actual, comparator, expected);
+      return paymentVerified;
     }
 
     case "stx-balance": {

@@ -33,6 +33,23 @@ export interface FileRecord {
   seller: string;
   priceUstx: number;
   createdAt: string;
+  name: string;
+  description: string;
+  fileType: string;
+  fileSize: number;
+}
+
+export interface PublicFileRecord {
+  fileId: string;
+  cid: string;
+  conditions: ConditionGroup | null;
+  seller: string;
+  priceUstx: number;
+  createdAt: string;
+  name: string;
+  description: string;
+  fileType: string;
+  fileSize: number;
 }
 
 export interface OnChainFile {

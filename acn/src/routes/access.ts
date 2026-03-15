@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { getFile } from "../services/keyStore.js";
-import { getFileOnChain, recordAccess, distributePayment } from "../services/stacks.js";
+import { getFile, hasPurchased, recordPurchase } from "../services/keyStore.js";
+import { getFileOnChain, recordAccess, distributePayment, getTransaction } from "../services/stacks.js";
 import {
   parsePaymentSignature,
   settlePayment,
@@ -14,13 +14,25 @@ export const accessRouter = Router();
 /**
  * GET /access/:fileId
  *
- * Full x402 flow using x402-stacks library:
+ * Supports two payment modes:
+ *
+ * 1. x402 flow (SDK / programmatic clients):
+ *    - Client signs an STX transfer WITHOUT broadcasting
+ *    - Retries with `payment-signature` header containing the signed tx
+ *    - ACN settles via x402 facilitator (facilitator broadcasts + confirms)
+ *
+ * 2. Browser wallet flow:
+ *    - Client broadcasts an STX transfer via wallet (openSTXTransfer)
+ *    - Retries with `x-stx-txid` header containing the confirmed txId
+ *    - ACN verifies the tx on-chain via Stacks API
+ *
+ * Full flow:
  * 1. Look up file in key store + on-chain
- * 2. If no payment-signature header → 402 with payment-required header
- * 3. Settle payment via facilitator (x402-stacks verifier)
+ * 2. If price > 0 and no payment header → 402 with payment requirements
+ * 3. Settle / verify payment via appropriate path
  * 4. Evaluate access conditions
  * 5. Record access + distribute payment on-chain
- * 6. Return encrypted AES key + CID with payment-response header
+ * 6. Return encrypted AES key + CID
  */
 accessRouter.get("/:fileId", async (req, res) => {
   try {
@@ -42,24 +54,38 @@ accessRouter.get("/:fileId", async (req, res) => {
     const seller = onChain?.seller ?? file.seller;
     const resourceUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
 
-    // Parse x402 V2 payment-signature header
     const paymentPayload = parsePaymentSignature(req);
+    const directTxId = req.headers["x-stx-txid"] as string | undefined;
+    const buyerParam = (req.query.buyer as string) ?? "";
 
-    // If price > 0 and no payment, return 402 with proper headers
-    if (priceUstx > 0 && !paymentPayload) {
+    // ── Short-circuit: buyer has already paid for this file ──
+    if (priceUstx > 0 && buyerParam && hasPurchased(buyerParam, fileId)) {
+      const conditionsMet = await evaluate(file.conditions, buyerParam, true);
+      if (!conditionsMet) {
+        res.status(403).json({ error: "Access conditions not met" });
+        return;
+      }
+      res.status(200).json({
+        cid: file.cid,
+        encryptedKey: file.encryptedKey,
+        buyerAddress: buyerParam,
+        txId: "",
+      });
+      return;
+    }
+
+    if (priceUstx > 0 && !paymentPayload && !directTxId) {
       send402(res, fileId, priceUstx, resourceUrl);
       return;
     }
 
-    // Settle payment via facilitator if present
     let paymentVerified = false;
     let buyerAddress = "";
     let settlementTxId = "";
-    let settlement = undefined as
-      | Awaited<ReturnType<typeof settlePayment>>
-      | undefined;
+    let settlement: Awaited<ReturnType<typeof settlePayment>> | undefined;
 
     if (paymentPayload && priceUstx > 0) {
+      // ── x402 facilitator flow ──
       try {
         settlement = await settlePayment(paymentPayload, priceUstx, resourceUrl);
         if (!settlement.success) {
@@ -73,20 +99,50 @@ accessRouter.get("/:fileId", async (req, res) => {
         send402(res, fileId, priceUstx, resourceUrl);
         return;
       }
+    } else if (directTxId && priceUstx > 0) {
+      // ── Browser wallet flow: verify the broadcast STX transfer on-chain ──
+      try {
+        const tx = await getTransaction(directTxId);
+        const confirmed =
+          tx.tx_status === "success" || tx.tx_status === "microblock_confirmed";
+        if (!confirmed) {
+          res.status(400).json({
+            error: "Transaction not yet confirmed",
+            txStatus: tx.tx_status,
+          });
+          return;
+        }
+        const stxEvent = tx.events?.find(
+          (e) =>
+            e.event_type === "stx_transfer_event" ||
+            e.event_type === "stx_asset"
+        );
+        if (!stxEvent || Number(stxEvent.asset?.amount) < priceUstx) {
+          res.status(400).json({ error: "Payment amount insufficient" });
+          return;
+        }
+        paymentVerified = true;
+        buyerAddress = tx.sender_address;
+        settlementTxId = directTxId;
+      } catch {
+        res.status(400).json({ error: "Failed to verify transaction" });
+        return;
+      }
     } else if (priceUstx === 0) {
       paymentVerified = true;
       buyerAddress = (req.query.address as string) ?? "";
     }
 
     // Evaluate access conditions
-    const conditionsMet = await evaluate(
-      file.conditions,
-      buyerAddress,
-      paymentVerified
-    );
+    const conditionsMet = await evaluate(file.conditions, buyerAddress, paymentVerified);
     if (!conditionsMet) {
       res.status(403).json({ error: "Access conditions not met" });
       return;
+    }
+
+    // Persist purchase so the buyer can re-download without paying again
+    if (paymentVerified && priceUstx > 0 && buyerAddress) {
+      recordPurchase(buyerAddress, fileId, settlementTxId);
     }
 
     // Record access + distribute payment on-chain (non-blocking)
@@ -97,11 +153,8 @@ accessRouter.get("/:fileId", async (req, res) => {
 
     const [accessTxResult] = await Promise.allSettled(txPromises);
     const txId =
-      accessTxResult.status === "fulfilled"
-        ? accessTxResult.value
-        : settlementTxId;
+      accessTxResult.status === "fulfilled" ? accessTxResult.value : settlementTxId;
 
-    // Attach payment-response header if we settled a payment
     if (settlement?.success) {
       attachPaymentResponse(res, settlement);
     }

@@ -13,7 +13,7 @@ import {
   STACKS_DEVNET,
   type StacksNetwork,
 } from "@stacks/network";
-import { config } from "../config.js";
+import { getConfigSync } from "../config.js";
 import type { OnChainFile } from "../types.js";
 
 const NETWORKS: Record<string, StacksNetwork> = {
@@ -22,6 +22,7 @@ const NETWORKS: Record<string, StacksNetwork> = {
   devnet: STACKS_DEVNET,
 };
 
+const config = getConfigSync();
 const network = NETWORKS[config.network] ?? STACKS_TESTNET;
 
 export const acnAddress = getAddressFromPrivateKey(config.acnPrivateKey, network);
@@ -101,16 +102,30 @@ export async function getFileOnChain(
   if (!json.okay) return null;
 
   const cv = cvToJSON(Cl.deserialize(json.result));
-  if (cv.type === "none") return null;
+  if (cv.type === "none" || !cv.value) return null;
 
-  const v = cv.value as Record<string, { value: string | number | boolean }>;
-  return {
-    cid: String(v.cid.value),
-    priceUstx: Number(v["price-ustx"].value),
-    seller: String(v.seller.value),
-    active: Boolean(v.active.value),
-    accessCount: Number(v["access-count"].value),
-  };
+  try {
+    // cvToJSON wraps optional tuples in varying depth depending on version.
+    // Walk into nested .value until we find the tuple with known keys.
+    let node: Record<string, unknown> = cv.value as Record<string, unknown>;
+    while (node && typeof node === "object" && "value" in node && !("cid" in node)) {
+      node = node.value as Record<string, unknown>;
+    }
+
+    const tuple = node as Record<string, { value: string | number | boolean }>;
+    if (!tuple?.cid) return null;
+
+    return {
+      cid: String(tuple.cid.value),
+      priceUstx: Number(tuple["price-ustx"].value),
+      seller: String(tuple.seller.value),
+      active: Boolean(tuple.active.value),
+      accessCount: Number(tuple["access-count"].value),
+    };
+  } catch {
+    console.error("getFileOnChain: unexpected cvToJSON shape:", JSON.stringify(cv, null, 2));
+    return null;
+  }
 }
 
 export async function getStxBalance(principal: string): Promise<bigint> {

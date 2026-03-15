@@ -8,10 +8,10 @@ import {
   type SettlementResponseV2,
 } from "x402-stacks";
 import { acnAddress } from "./stacks.js";
-import { config } from "../config.js";
+import { getConfigSync } from "../config.js";
 
+const config = getConfigSync();
 const verifier = new X402PaymentVerifier(config.x402FacilitatorUrl || undefined);
-
 const networkCaip2 = networkToCAIP2(config.network as "mainnet" | "testnet");
 
 function buildPaymentRequirements(

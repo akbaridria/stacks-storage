@@ -7,39 +7,51 @@ import { registerFile } from "../services/stacks.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } });
 
+const conditionSchema = z.object({
+  id: z.number(),
+  method: z.enum([
+    "x402-payment",
+    "stx-balance",
+    "sip010-balance",
+    "sip009-owner",
+    "contract-call",
+    "block-height",
+  ]),
+  contractAddress: z.string().optional(),
+  function: z.string().optional(),
+  parameters: z.array(z.string()).optional(),
+  returnValueTest: z.object({
+    comparator: z.enum(["==", ">=", "<=", ">", "<"]),
+    value: z.string(),
+  }),
+});
+
+const conditionGroupSchema = z.object({
+  operator: z.enum(["AND", "OR"]),
+  conditions: z.array(conditionSchema),
+}).nullable().optional();
+
 const registerSchema = z.object({
   fileId: z.string().min(1).max(64),
   cid: z.string().min(1).max(128),
-  priceUstx: z.number().int().min(0),
+  priceUstx: z.number().int().min(0).optional(),
   seller: z.string().min(1),
   encryptedKey: z.string().min(1),
-  conditions: z
-    .object({
-      operator: z.enum(["AND", "OR"]),
-      conditions: z.array(
-        z.object({
-          id: z.number(),
-          method: z.enum([
-            "x402-payment",
-            "stx-balance",
-            "sip010-balance",
-            "sip009-owner",
-            "contract-call",
-            "block-height",
-          ]),
-          contractAddress: z.string().optional(),
-          function: z.string().optional(),
-          parameters: z.array(z.string()).optional(),
-          returnValueTest: z.object({
-            comparator: z.enum(["==", ">=", "<=", ">", "<"]),
-            value: z.string(),
-          }),
-        })
-      ),
-    })
-    .nullable()
-    .optional(),
+  name: z.string().max(256).optional().default(""),
+  description: z.string().max(2048).optional().default(""),
+  fileType: z.string().max(64).optional().default("other"),
+  fileSize: z.number().int().min(0).optional().default(0),
+  conditions: conditionGroupSchema,
 });
+
+/** Extract price in microSTX from x402-payment condition if present, else 0. */
+function extractPriceFromConditions(group: z.infer<typeof conditionGroupSchema>): number {
+  if (!group) return 0;
+  const x402 = group.conditions.find((c) => c.method === "x402-payment");
+  if (!x402) return 0;
+  const val = parseInt(x402.returnValueTest.value, 10);
+  return isNaN(val) || val < 0 ? 0 : val;
+}
 
 export const uploadRouter = Router();
 
@@ -74,9 +86,10 @@ uploadRouter.post("/register", async (req, res) => {
       return;
     }
 
-    const { fileId, cid, priceUstx, seller, encryptedKey, conditions } = parsed.data;
+    const { fileId, cid, seller, encryptedKey, conditions, name, description, fileType, fileSize } = parsed.data;
+    const priceUstx = parsed.data.priceUstx ?? extractPriceFromConditions(conditions);
 
-    storeFile(fileId, encryptedKey, conditions ?? null, cid, seller, priceUstx);
+    storeFile(fileId, encryptedKey, conditions ?? null, cid, seller, priceUstx, name, description, fileType, fileSize);
 
     const txId = await registerFile(fileId, cid, priceUstx, seller);
 

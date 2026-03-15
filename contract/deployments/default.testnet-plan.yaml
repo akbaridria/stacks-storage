@@ -1,0 +1,24 @@
+id: 0
+name: Testnet deployment
+network: testnet
+stacks-node: https://api.testnet.hiro.so
+bitcoin-node: http://blockstack:blockstacksystem@bitcoind.testnet.stacks.co:18332
+plan:
+  batches:
+  - id: 0
+    transactions:
+    - transaction-type: contract-publish
+      contract-name: acn-payments
+      expected-sender: ST390F5038Z24RAGZP2E3GH3Y8XFPY08PXG9BEDN0
+      cost: 10050
+      path: contracts/acn-payments.clar
+      anchor-block-only: true
+      clarity-version: 4
+    - transaction-type: contract-publish
+      contract-name: file-registry
+      expected-sender: ST390F5038Z24RAGZP2E3GH3Y8XFPY08PXG9BEDN0
+      cost: 24990
+      path: contracts/file-registry.clar
+      anchor-block-only: true
+      clarity-version: 4
+    epoch: '3.3'

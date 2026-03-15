@@ -1,8 +1,9 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { config } from "../config.js";
+import { getConfigSync } from "../config.js";
 
+const config = getConfigSync();
 const UPLOADS_DIR = path.resolve("uploads");
 
 async function pinLocal(buffer: Buffer): Promise<string> {
