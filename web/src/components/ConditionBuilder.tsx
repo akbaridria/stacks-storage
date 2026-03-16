@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { Condition, ConditionGroup } from "@/lib/acn";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const METHODS = [
   { value: "x402-payment", label: "x402 Payment" },
@@ -139,14 +146,15 @@ export function ConditionBuilder({ value, onChange }: Props) {
         <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Require</span>
-            <select
-              value={group.operator}
-              onChange={(e) => setOperator(e.target.value as "AND" | "OR")}
-              className={`${inputClass} w-auto`}
-            >
-              <option value="AND">ALL conditions (AND)</option>
-              <option value="OR">ANY condition (OR)</option>
-            </select>
+            <Select value={group.operator} onValueChange={(v) => setOperator(v as "AND" | "OR")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AND">ALL conditions (AND)</SelectItem>
+                <SelectItem value="OR">ANY condition (OR)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {group.conditions.map((cond) => (
@@ -155,17 +163,18 @@ export function ConditionBuilder({ value, onChange }: Props) {
               className="space-y-2 rounded-lg border border-border bg-background/50 p-3"
             >
               <div className="flex items-center justify-between">
-                <select
-                  value={cond.method}
-                  onChange={(e) => handleMethodChange(cond.id, e.target.value)}
-                  className={`${inputClass} w-auto`}
-                >
-                  {METHODS.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
+                <Select value={cond.method} onValueChange={(v) => handleMethodChange(cond.id, v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {METHODS.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <button
                   type="button"
                   onClick={() => removeCondition(cond.id)}
@@ -234,24 +243,28 @@ export function ConditionBuilder({ value, onChange }: Props) {
 
               {cond.method !== "x402-payment" && (
                 <div className="flex items-center gap-2">
-                  <select
+                  <Select
                     value={cond.returnValueTest.comparator}
-                    onChange={(e) =>
+                    onValueChange={(v) =>
                       updateCondition(cond.id, {
                         returnValueTest: {
                           ...cond.returnValueTest,
-                          comparator: e.target.value,
+                          comparator: v,
                         },
                       })
                     }
-                    className={`${inputClass} w-20`}
                   >
-                    {COMPARATORS.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPARATORS.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <input
                     type="text"
                     placeholder="Value"

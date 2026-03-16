@@ -16,6 +16,8 @@ export interface PublicFile {
 export interface FileDetail extends PublicFile {
   accessCount: number;
   active: boolean;
+  /** Present when request included ?address=; true if that address has passed all access requirements. */
+  accessGranted?: boolean;
 }
 
 export interface ConditionGroup {
@@ -42,8 +44,15 @@ export async function fetchFiles(seller?: string): Promise<PublicFile[]> {
   return data.files;
 }
 
-export async function fetchFileDetail(fileId: string): Promise<FileDetail> {
-  const res = await fetch(`${ACN_URL}/files/${fileId}`, { cache: "no-store" });
+export async function fetchFileDetail(
+  fileId: string,
+  /** If provided, backend checks whether this address has passed all requirements and returns accessGranted. */
+  address?: string
+): Promise<FileDetail> {
+  const url = address
+    ? `${ACN_URL}/files/${fileId}?address=${encodeURIComponent(address)}`
+    : `${ACN_URL}/files/${fileId}`;
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch file detail");
   return res.json() as Promise<FileDetail>;
 }

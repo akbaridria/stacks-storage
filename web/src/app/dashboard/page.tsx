@@ -107,19 +107,19 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-3 mb-8">
         <Card>
-          <CardContent className="p-5">
+          <CardContent>
             <p className="text-sm text-muted-foreground">Total Files</p>
             <p className="text-2xl font-bold mt-1">{files.length}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5">
+          <CardContent>
             <p className="text-sm text-muted-foreground">Total Accesses</p>
             <p className="text-2xl font-bold mt-1">{totalAccesses}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-5">
+          <CardContent>
             <p className="text-sm text-muted-foreground">Est. Revenue</p>
             <p className="text-2xl font-bold mt-1">
               {ustxToStx(totalRevenue)}{" "}
@@ -173,7 +173,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-5 py-4">
                       {f.priceUstx === 0 ? (
-                        <Badge variant="success">Free</Badge>
+                        <Badge variant="default">Free</Badge>
                       ) : (
                         `${ustxToStx(f.priceUstx)} STX`
                       )}
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                       {formatFileSize(f.fileSize)}
                     </td>
                     <td className="px-5 py-4">
-                      <Badge variant={f.active ? "success" : "destructive"}>
+                      <Badge variant={f.active ? "default" : "destructive"}>
                         {f.active ? "Active" : "Inactive"}
                       </Badge>
                     </td>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
 
       {files.length > 0 && (
         <Card className="mt-8">
-          <CardContent className="p-5">
+          <CardContent>
             <h3 className="text-sm font-semibold text-card-foreground mb-2">
               Embed Button
             </h3>

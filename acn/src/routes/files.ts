@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { listFiles, listFilesBySeller, getPublicFile } from "../services/keyStore.js";
+import { listFiles, listFilesBySeller, getPublicFile, hasPurchased } from "../services/keyStore.js";
 import { getFileOnChain } from "../services/stacks.js";
+import { evaluate } from "../services/conditionEvaluator.js";
 
 export const filesRouter = Router();
 
@@ -23,6 +24,8 @@ filesRouter.get("/", async (req, res) => {
  * GET /files/:fileId
  * Get public info for a single file (no encrypted key).
  * Enriches with on-chain data (access count, active status).
+ * Optional query param: address — if provided, checks whether this address
+ * has passed all access requirements (payment + conditions) and includes accessGranted.
  */
 filesRouter.get("/:fileId", async (req, res) => {
   try {
@@ -34,18 +37,29 @@ filesRouter.get("/:fileId", async (req, res) => {
 
     let accessCount = 0;
     let active = true;
+    let priceUstx = file.priceUstx;
 
     try {
       const onChain = await getFileOnChain(file.fileId);
       if (onChain) {
         accessCount = onChain.accessCount;
         active = onChain.active;
+        priceUstx = onChain.priceUstx;
       }
     } catch {
       // chain read may fail on devnet — fall back to defaults
     }
 
-    res.json({ ...file, accessCount, active });
+    const payload: Record<string, unknown> = { ...file, accessCount, active };
+
+    const address = (req.query.address as string)?.trim();
+    if (address) {
+      const hasPaid = priceUstx === 0 || hasPurchased(address, file.fileId);
+      const conditionsMet = await evaluate(file.conditions, address, hasPaid);
+      payload.accessGranted = conditionsMet;
+    }
+
+    res.json(payload);
   } catch (err) {
     console.error("GET /files/:fileId error:", err);
     res.status(500).json({ error: "Failed to get file" });

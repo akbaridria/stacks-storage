@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { fetchFileDetail, fetchFiles, type FileDetail, type PublicFile } from "@/lib/acn";
+import { useWallet } from "@/context/WalletContext";
 import { BuyButton } from "@/components/BuyButton";
 import { FileCard } from "@/components/FileCard";
 import {
@@ -53,6 +54,7 @@ function conditionLabel(method: string): string {
 
 export default function FileDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { address } = useWallet();
   const [file, setFile] = useState<FileDetail | null>(null);
   const [sellerFiles, setSellerFiles] = useState<PublicFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function FileDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    fetchFileDetail(id)
+    fetchFileDetail(id, address ?? undefined)
       .then((f) => {
         setFile(f);
         fetchFiles(f.seller).then((list) =>
@@ -71,7 +73,7 @@ export default function FileDetailPage() {
       })
       .catch(() => setError("File not found"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, address]);
 
   function copyId() {
     navigator.clipboard.writeText(id);
@@ -120,7 +122,7 @@ export default function FileDetailPage() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardContent className="p-6">
+            <CardContent>
               <div className="flex items-start gap-4">
                 <div className="rounded-xl bg-primary/10 p-4 text-primary">
                   <Icon className="h-8 w-8" />
@@ -144,7 +146,7 @@ export default function FileDetailPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Card>
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="space-y-3">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   File Info
                 </h3>
@@ -173,7 +175,7 @@ export default function FileDetailPage() {
             </Card>
 
             <Card>
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="space-y-3">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   On-Chain
                 </h3>
@@ -210,7 +212,7 @@ export default function FileDetailPage() {
 
           {file.conditions && file.conditions.conditions.length > 0 && (
             <Card>
-              <CardContent className="p-5">
+              <CardContent>
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Access Conditions
                 </h3>
@@ -249,7 +251,7 @@ export default function FileDetailPage() {
 
         <div className="space-y-6">
           <Card className="sticky top-24">
-            <CardContent className="p-6">
+            <CardContent>
               <div className="text-center mb-6">
                 <p className="text-sm text-muted-foreground mb-1">Price</p>
                 <p className="text-3xl font-bold">
@@ -264,6 +266,11 @@ export default function FileDetailPage() {
                 </p>
               </div>
 
+              {file.accessGranted && (
+                <div className="rounded-lg bg-primary/10 text-primary text-sm font-medium py-3 px-4 text-center mb-4">
+                  You have access to this file
+                </div>
+              )}
               {file.active ? (
                 <BuyButton
                   fileId={file.fileId}
@@ -277,7 +284,7 @@ export default function FileDetailPage() {
                 </div>
               )}
 
-              <div className="mt-5 pt-5 border-t border-border space-y-2 text-xs text-muted-foreground">
+              <div className="pt-4 space-y-2 text-xs text-muted-foreground">
                 <p className="flex items-center gap-1.5">
                   <Shield className="h-3.5 w-3.5" />
                   File decrypted locally in your browser
@@ -290,18 +297,6 @@ export default function FileDetailPage() {
             </CardContent>
           </Card>
 
-          {sellerFiles.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-                More from this seller
-              </h3>
-              <div className="space-y-3">
-                {sellerFiles.map((sf) => (
-                  <FileCard key={sf.fileId} file={sf} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -23,12 +23,12 @@ export function FileCard({ file }: { file: PublicFile }) {
   return (
     <Link href={`/file/${file.fileId}`}>
       <Card className="group block transition-all hover:border-primary/30 hover:bg-muted/30">
-        <CardContent className="p-5">
+        <CardContent>
           <div className="flex items-start justify-between gap-3">
             <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
               <Icon className="h-5 w-5" />
             </div>
-            <Badge variant={isFree ? "success" : "secondary"}>
+            <Badge variant={isFree ? "default" : "secondary"}>
               {isFree ? "Free" : `${price} STX`}
             </Badge>
           </div>

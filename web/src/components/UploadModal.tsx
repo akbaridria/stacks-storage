@@ -1,16 +1,28 @@
 "use client";
 
 import { useState, useRef, type DragEvent } from "react";
-import { X, Upload, Loader2, Check, File as FileIcon } from "lucide-react";
+import { Upload, Loader2, Check, File as FileIcon } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 import { uploadToIpfs, registerFile, type ConditionGroup } from "@/lib/acn";
 import { generateKey, encryptFile, serializeKey, sha256Hex } from "@/lib/crypto";
 import { formatFileSize, FILE_TYPES } from "@/lib/constants";
 import { ConditionBuilder, extractPriceFromConditions } from "./ConditionBuilder";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Props {
   open: boolean;
@@ -35,8 +47,6 @@ export function UploadModal({ open, onClose, onSuccess }: Props) {
   const [resultFileId, setResultFileId] = useState("");
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
-
-  if (!open) return null;
 
   function reset() {
     setFile(null);
@@ -113,17 +123,18 @@ export function UploadModal({ open, onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold">Upload File</h2>
-            <Button variant="ghost" size="icon" onClick={handleClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-6">
+        <DialogHeader>
+          <DialogTitle>Upload File</DialogTitle>
+        </DialogHeader>
 
-          {step === "form" && (
+        {step === "form" && (
             <div className="space-y-4">
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -186,17 +197,18 @@ export function UploadModal({ open, onClose, onSuccess }: Props) {
 
               <div>
                 <Label>Type</Label>
-                <select
-                  value={fileType}
-                  onChange={(e) => setFileType(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {FILE_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <Select value={fileType} onValueChange={setFileType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FILE_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <ConditionBuilder value={conditions} onChange={setConditions} />
@@ -256,8 +268,7 @@ export function UploadModal({ open, onClose, onSuccess }: Props) {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
