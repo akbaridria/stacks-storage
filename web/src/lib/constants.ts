@@ -8,9 +8,7 @@ export const FILE_TYPES = ["document", "video", "dataset", "software", "other"] 
 export type FileType = (typeof FILE_TYPES)[number];
 
 export const IPFS_GATEWAYS = [
-  "https://w3s.link/ipfs/",
-  "https://ipfs.io/ipfs/",
-  "https://dweb.link/ipfs/",
+  "https://coral-charming-marten-712.mypinata.cloud/ipfs/",
 ];
 
 export const STACKS_EXPLORER =

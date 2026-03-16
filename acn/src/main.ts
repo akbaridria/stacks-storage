@@ -31,5 +31,5 @@ app.listen(config.port, () => {
   console.log(`  ACN address: ${acnAddress}`);
   console.log(`  IPFS:        ${config.ipfsProvider}`);
   console.log(`  Contracts:   ${config.contractDeployer}.file-registry`);
-  console.log(`               ${config.contractDeployer}.acn-payments`);
+  console.log(`  Payment:     centralized (manual 97% seller / 3% treasury)`);
 });

@@ -23,10 +23,10 @@ Upload any file. Encrypt it. Define who can decrypt it — and how. Access condi
   - [Buyer Marketplace](#buyer-marketplace)
 - [Developer API Reference](#developer-api-reference)
   - [Upload Endpoints](#upload-endpoints)
+  - [Files Endpoints](#files-endpoints)
   - [Access Endpoints](#access-endpoints)
   - [Error Codes](#error-codes)
-- [Architecture](#architecture)
-- [Self-Hosting](#self-hosting)
+- [Roadmap](#roadmap)
 
 ---
 
@@ -77,11 +77,13 @@ upload file
                                                                        │
                                         verify payment on Stacks       │
                                         evaluate conditions            │
-                                        record payment on-chain        │
+                                        record access on-chain         │
+                                        (payment: manual 97% / 3%)      │
                                               │                        │
                                               └── release AES key ────►
                                                                        │
                                                                  fetch CID from IPFS
+                                                                 (Pinata gateway)
                                                                  decrypt in browser
                                                                        │
                                                                     ✓ file
@@ -334,7 +336,7 @@ What happens under the hood:
 3. `x402-stacks` intercepts the 402, signs the STX payment, sends to facilitator
 4. Facilitator broadcasts the transaction and waits for confirmation
 5. SDK retries the request — ACN verifies payment, evaluates conditions, releases AES key
-6. SDK fetches encrypted bytes from IPFS via CID
+6. SDK fetches encrypted bytes from IPFS via CID (using the configured Pinata gateway)
 7. SDK decrypts locally with the AES key — plaintext never touches a server
 
 ### Condition Examples
@@ -395,7 +397,7 @@ await storage.upload(file, {
 
 ## Web Marketplace
 
-The web app at `web/` is a Next.js 14 application with two distinct experiences.
+The web app at `web/` is a Next.js 14 application with two distinct experiences. It includes a **Documentation** section (Overview, How It Works, Access Conditions, SDK, Web Marketplace, API Reference, Roadmap) and uses the shared UI components (Dialog, Select, etc.).
 
 ### Seller Dashboard
 
@@ -445,6 +447,7 @@ The marketplace is a public feed of all active files listed on Stacks Storage.
 - File name, description, type, and size
 - Price in STX (converted to USD at current rate)
 - Access conditions shown clearly — "Must hold 100 MY-TOKEN or pay 5 STX"
+- When the connected wallet has passed all requirements, a "You have access" state is shown (backend checks via `GET /files/:fileId?address=...` and returns `accessGranted`)
 - Seller's other files
 - Buy button — connects Hiro wallet, handles x402 payment, triggers download
 
@@ -516,6 +519,20 @@ Register a file with the ACN. Stores the AES key and triggers the Clarity `regis
 
 ---
 
+### Files Endpoints
+
+#### `GET /files`
+
+List all files (public info). Query: optional `seller` to filter by seller. Response: `{ files: [...] }`.
+
+#### `GET /files/:fileId`
+
+Get public info for a single file (no encrypted key). Response includes on-chain data: `accessCount`, `active`.
+
+**Optional query:** `address` — when provided, the ACN checks whether this address has passed all access requirements (payment + conditions) and includes `accessGranted: true | false` in the response. Used by the file detail page to show "You have access" for the connected wallet.
+
+---
+
 ### Access Endpoints
 
 #### `GET /access/:fileId`
@@ -584,85 +601,15 @@ Request access to a file. Returns `402` if no valid payment is present.
 
 ---
 
-## Architecture
+## Roadmap
 
-```
-stacks-storage/
-├── contract/               Clarity smart contracts
-│   ├── file-registry.clar  On-chain file index: CID, price, seller, access count
-│   └── acn-payments.clar   STX fee split: 97% seller, 3% protocol treasury
-│
-├── acn/                    Access Control Node — Node.js / Express
-│   └── src/
-│       ├── routes/
-│       │   ├── upload.ts   POST /upload/ipfs, POST /upload/register
-│       │   └── access.ts   GET /access/:fileId — x402 gate + condition eval
-│       └── services/
-│           ├── x402.ts     x402-stacks middleware wrapper
-│           ├── conditionEvaluator.ts  AND/OR logic engine
-│           ├── stacks.ts   Clarity contract calls + chain reads
-│           └── keyStore.ts AES key storage + release
-│
-├── sdk/                    npm package — @stacks-storage/sdk
-│   └── src/
-│       ├── StacksStorage.ts  upload() + access()
-│       └── types.ts          TypeScript types
-│
-├── web/                    Next.js 14 — seller dashboard + buyer marketplace
-│
-└── docs/                   Developer documentation
-```
+### Decentralized Key Management (KMS)
 
-**Data ownership:**
+The Key Management System is currently **centralized**: the ACN stores encrypted AES keys and releases them when access conditions are met. The roadmap is to **decentralize the KMS** so that key storage and release are not dependent on a single operator (e.g. threshold encryption, distributed key shards, or on-chain/contract-based release logic).
 
-| Data | Where | Who controls |
-|---|---|---|
-| Encrypted file bytes | IPFS + Filecoin | Nobody — permanent and public |
-| File CID + price + seller | Clarity contract | Seller (can update price, deactivate) |
-| AES decryption key | ACN key store (encrypted at rest) | ACN operator |
-| Payment history | Stacks blockchain | Immutable |
+### Payment distribution
 
----
-
-## Self-Hosting
-
-You can run your own ACN to maintain full key custody.
-
-**Requirements:**
-- Node.js 20+
-- A Stacks wallet with some STX for transaction fees
-- A web3.storage account for IPFS pinning
-- A deployed x402-stacks facilitator (see [x402Stacks](https://github.com/tony1908/x402Stacks))
-
-**Steps:**
-
-```bash
-git clone https://github.com/your-org/stacks-storage
-cd stacks-storage/acn
-
-cp .env.example .env
-# fill in STACKS_NETWORK, ACN_PRIVATE_KEY, W3_STORAGE_TOKEN,
-# KEY_ENCRYPTION_SECRET, X402_FACILITATOR_URL
-
-npm install
-npm run dev
-```
-
-Deploy the Clarity contracts with Clarinet:
-
-```bash
-cd contract
-clarinet deployments apply --testnet
-```
-
-Point the SDK to your ACN:
-
-```typescript
-const storage = new StacksStorage({
-  acnUrl:  'https://your-acn.example.com',
-  network: 'testnet'
-})
-```
+Payment distribution is currently **centralized**: when the ACN receives payment (via x402), the operator **manually transfers 97% to the seller** and **3% to the protocol treasury** (the payment-clar / acn-payments contract address or a configured treasury address). A future step is to switch to on-chain distribution by calling the payment-clar smart contract so that splits happen automatically in a single transaction.
 
 ---
 

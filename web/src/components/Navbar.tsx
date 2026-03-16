@@ -27,6 +27,12 @@ export function Navbar() {
             >
               Marketplace
             </Link>
+            <Link
+              href="/documentation"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Documentation
+            </Link>
             {connected && (
               <Link
                 href="/dashboard"

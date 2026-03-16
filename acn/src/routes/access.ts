@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getFile, hasPurchased, recordPurchase } from "../services/keyStore.js";
-import { getFileOnChain, recordAccess, distributePayment, getTransaction } from "../services/stacks.js";
+import { getFileOnChain, recordAccess, getTransaction } from "../services/stacks.js";
 import {
   parsePaymentSignature,
   settlePayment,
@@ -31,7 +31,7 @@ export const accessRouter = Router();
  * 2. If price > 0 and no payment header → 402 with payment requirements
  * 3. Settle / verify payment via appropriate path
  * 4. Evaluate access conditions
- * 5. Record access + distribute payment on-chain
+ * 5. Record access on-chain (payment distribution is centralized: operator transfers 97% to seller, 3% to treasury)
  * 6. Return encrypted AES key + CID
  */
 accessRouter.get("/:fileId", async (req, res) => {
@@ -145,10 +145,16 @@ accessRouter.get("/:fileId", async (req, res) => {
       recordPurchase(buyerAddress, fileId, settlementTxId);
     }
 
-    // Record access + distribute payment on-chain (non-blocking)
+    // Record access on-chain. Payment distribution is centralized: operator manually transfers
+    // 97% to seller and 3% to treasury (see Roadmap in documentation).
     const txPromises: Promise<string>[] = [recordAccess(fileId)];
+
     if (paymentVerified && priceUstx > 0) {
-      txPromises.push(distributePayment(seller, priceUstx));
+      const sellerAmount = Math.floor((priceUstx * 97) / 100);
+      const treasuryAmount = priceUstx - sellerAmount;
+      console.info(
+        `[access] Payment received: ${priceUstx} ustx — manually transfer 97% (${sellerAmount} ustx) to seller ${seller}, 3% (${treasuryAmount} ustx) to treasury`
+      );
     }
 
     const [accessTxResult] = await Promise.allSettled(txPromises);

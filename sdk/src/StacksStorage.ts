@@ -15,9 +15,7 @@ import type {
 } from "./types.js";
 
 const IPFS_GATEWAYS = [
-  "https://w3s.link/ipfs/",
-  "https://ipfs.io/ipfs/",
-  "https://dweb.link/ipfs/",
+  "https://coral-charming-marten-712.mypinata.cloud/ipfs/",
 ];
 
 async function sha256Hex(data: string): Promise<string> {
