@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@/context/WalletContext";
 import { fetchFiles, fetchFileDetail, type PublicFile } from "@/lib/acn";
-import { ustxToStx, formatFileSize, truncateAddress, STACKS_EXPLORER } from "@/lib/constants";
+import { ustxToStx, formatFileSize, truncateAddress } from "@/lib/constants";
 import { UploadModal } from "@/components/UploadModal";
 import {
   Upload,
@@ -15,6 +15,9 @@ import {
   Wallet,
   Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface FileWithStats extends PublicFile {
   accessCount: number;
@@ -65,17 +68,17 @@ export default function DashboardPage() {
     return (
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
         <div className="flex flex-col items-center justify-center text-center gap-6">
-          <div className="rounded-full bg-brand-600/10 p-4">
-            <Wallet className="h-10 w-10 text-brand-400" />
+          <div className="rounded-full bg-primary/10 p-4">
+            <Wallet className="h-10 w-10 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">Connect Your Wallet</h1>
-          <p className="text-gray-400 max-w-md">
+          <p className="text-muted-foreground max-w-md">
             Connect your Hiro wallet to view your seller dashboard, manage
             files, and track revenue.
           </p>
-          <button onClick={connect} className="btn-primary px-8 py-3">
+          <Button onClick={connect} size="lg" className="px-8 py-3">
             Connect Wallet
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -89,59 +92,64 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold">Seller Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {truncateAddress(address!)}
           </p>
         </div>
-        <button onClick={() => setShowUpload(true)} className="btn-primary">
+        <Button onClick={() => setShowUpload(true)}>
           <Upload className="h-4 w-4 mr-2" />
           Upload File
-        </button>
+        </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3 mb-8">
-        <div className="card p-5">
-          <p className="text-sm text-gray-500">Total Files</p>
-          <p className="text-2xl font-bold mt-1">{files.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-gray-500">Total Accesses</p>
-          <p className="text-2xl font-bold mt-1">{totalAccesses}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-gray-500">Est. Revenue</p>
-          <p className="text-2xl font-bold mt-1">
-            {ustxToStx(totalRevenue)}{" "}
-            <span className="text-sm font-normal text-gray-500">STX</span>
-          </p>
-        </div>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground">Total Files</p>
+            <p className="text-2xl font-bold mt-1">{files.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground">Total Accesses</p>
+            <p className="text-2xl font-bold mt-1">{totalAccesses}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground">Est. Revenue</p>
+            <p className="text-2xl font-bold mt-1">
+              {ustxToStx(totalRevenue)}{" "}
+              <span className="text-sm font-normal text-muted-foreground">STX</span>
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* File list */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 text-brand-400 animate-spin" />
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
         </div>
       ) : files.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center py-20 gap-4 text-center">
-          <FileText className="h-12 w-12 text-gray-700" />
-          <p className="text-gray-500">No files yet. Upload your first file to get started.</p>
-          <button onClick={() => setShowUpload(true)} className="btn-primary">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload File
-          </button>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <FileText className="h-12 w-12 text-muted-foreground" />
+            <p className="text-muted-foreground">No files yet. Upload your first file to get started.</p>
+            <Button onClick={() => setShowUpload(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload File
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="card overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800 text-left text-xs text-gray-500 uppercase tracking-wider">
+                <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase tracking-wider">
                   <th className="px-5 py-3">File</th>
                   <th className="px-5 py-3">Price</th>
                   <th className="px-5 py-3">Accesses</th>
@@ -150,66 +158,59 @@ export default function DashboardPage() {
                   <th className="px-5 py-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/60">
+              <tbody className="divide-y divide-border">
                 {files.map((f) => (
-                  <tr key={f.fileId} className="hover:bg-gray-800/30 transition-colors">
+                  <tr key={f.fileId} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-4">
                       <div>
-                        <p className="font-medium text-gray-200 truncate max-w-[200px]">
+                        <p className="font-medium text-card-foreground truncate max-w-[200px]">
                           {f.name || "Untitled"}
                         </p>
-                        <p className="text-xs text-gray-600 font-mono truncate max-w-[200px]">
+                        <p className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
                           {f.fileId.slice(0, 16)}...
                         </p>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-gray-300">
+                    <td className="px-5 py-4">
                       {f.priceUstx === 0 ? (
-                        <span className="text-emerald-400">Free</span>
+                        <Badge variant="success">Free</Badge>
                       ) : (
                         `${ustxToStx(f.priceUstx)} STX`
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5 text-gray-300">
-                        <Eye className="h-3.5 w-3.5 text-gray-600" />
+                      <div className="flex items-center gap-1.5">
+                        <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                         {f.accessCount}
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-gray-400">
+                    <td className="px-5 py-4 text-muted-foreground">
                       {formatFileSize(f.fileSize)}
                     </td>
                     <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                          f.active
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-red-500/10 text-red-400"
-                        }`}
-                      >
+                      <Badge variant={f.active ? "success" : "destructive"}>
                         {f.active ? "Active" : "Inactive"}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => copyFileId(f.fileId)}
-                          className="rounded p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-800"
                           title="Copy file ID"
                         >
                           {copiedId === f.fileId ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                            <Check className="h-3.5 w-3.5 text-primary" />
                           ) : (
                             <Copy className="h-3.5 w-3.5" />
                           )}
-                        </button>
-                        <a
-                          href={`/file/${f.fileId}`}
-                          className="rounded p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-800"
-                          title="View file page"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
+                        </Button>
+                        <Button variant="ghost" size="icon" asChild>
+                          <a href={`/file/${f.fileId}`} title="View file page">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -217,22 +218,23 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Embed snippet for first file */}
       {files.length > 0 && (
-        <div className="mt-8 card p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-2">
-            Embed Button
-          </h3>
-          <p className="text-xs text-gray-500 mb-3">
-            Add this snippet to any website to let users purchase your file:
-          </p>
-          <pre className="rounded-lg bg-gray-800 p-3 text-xs text-gray-400 overflow-x-auto">
-            {`<script src="https://stacks-storage.xyz/embed.js"\n        data-file-id="${files[0].fileId}"\n        data-label="Buy for ${ustxToStx(files[0].priceUstx)} STX">\n</script>`}
-          </pre>
-        </div>
+        <Card className="mt-8">
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold text-card-foreground mb-2">
+              Embed Button
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Add this snippet to any website to let users purchase your file:
+            </p>
+            <pre className="rounded-lg bg-muted p-3 text-xs text-muted-foreground overflow-x-auto">
+              {`<script src="https://stacks-storage.xyz/embed.js"\n        data-file-id="${files[0].fileId}"\n        data-label="Buy for ${ustxToStx(files[0].priceUstx)} STX">\n</script>`}
+            </pre>
+          </CardContent>
+        </Card>
       )}
 
       <UploadModal

@@ -6,6 +6,7 @@ import { accessFile, PaymentRequiredError } from "@/lib/acn";
 import { deserializeKey, decryptFile } from "@/lib/crypto";
 import { IPFS_GATEWAYS, ustxToStx, STACKS_NETWORK } from "@/lib/constants";
 import { Loader2, Download, ShoppingCart, Wallet, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   fileId: string;
@@ -15,9 +16,9 @@ interface Props {
 }
 
 type BuyStep =
-  | "checking"    // initial silent check on mount
-  | "idle"        // needs to buy
-  | "ready"       // already purchased — can download immediately
+  | "checking"
+  | "idle"
+  | "ready"
   | "paying"
   | "confirming"
   | "downloading"
@@ -56,7 +57,7 @@ async function pollForAccess(
     try {
       return await accessFile(fileId, { txId, buyer });
     } catch (err: unknown) {
-      const e = err as { status?: number; message?: string };
+      const e = err as { status?: number };
       if (e.status === 400) {
         const delay = delays[Math.min(attempt - 1, delays.length - 1)];
         await new Promise((r) => setTimeout(r, delay));
@@ -73,17 +74,14 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
   const [step, setStep] = useState<BuyStep>("checking");
   const [confirmAttempt, setConfirmAttempt] = useState(0);
   const [error, setError] = useState("");
-  // Cache the access result so a "ready" user can download without re-fetching
   const cachedAccess = useRef<AccessResult | null>(null);
 
   const isFree = priceUstx === 0;
 
-  // ── On mount / wallet change: silently check if user already has access ──
   useEffect(() => {
     let cancelled = false;
 
     async function checkAccess() {
-      // Not connected yet — just show idle (buy / connect)
       if (!connected || !address) {
         setStep("idle");
         return;
@@ -93,19 +91,12 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
       try {
         const result = await accessFile(fileId, { buyer: address });
         if (cancelled) return;
-        // User already has access — cache the result and show "Download Again"
         cachedAccess.current = result;
         setStep("ready");
       } catch (err: unknown) {
         if (cancelled) return;
         const e = err as { status?: number };
-        if (e.status === 402) {
-          // Normal — not purchased yet
-          setStep("idle");
-        } else {
-          // Any other error (403, 410, network) — still show idle so user can try
-          setStep("idle");
-        }
+        setStep(e.status === 402 ? "idle" : "idle");
       }
     }
 
@@ -140,7 +131,6 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
       return;
     }
 
-    // Already purchased — download directly from cache
     if (step === "ready" && cachedAccess.current) {
       try {
         await handleDownload(cachedAccess.current);
@@ -155,7 +145,6 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
     setConfirmAttempt(0);
 
     try {
-      // Step 1: Try access (free files or repeat purchases go through here)
       const result = await accessFile(fileId, { buyer: address ?? undefined });
       cachedAccess.current = result;
       await handleDownload(result);
@@ -169,7 +158,6 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
         return;
       }
 
-      // Step 2: Got 402 — pay using details from the server's response
       const { payTo, price, network } = err.payment;
       setStep("paying");
 
@@ -194,7 +182,6 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
                 try {
                   setStep("confirming");
                   setConfirmAttempt(0);
-                  // Step 3: Poll until tx confirmed, then get access
                   const accessResult = await pollForAccess(
                     fileId,
                     data.txId,
@@ -225,81 +212,6 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
     }
   }
 
-  function getButtonContent() {
-    switch (step) {
-      case "checking":
-        return (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Checking access...
-          </>
-        );
-      case "ready":
-        return (
-          <>
-            <Download className="h-4 w-4 mr-2" />
-            Download Again
-          </>
-        );
-      case "idle":
-        return connected ? (
-          <>
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {isFree ? "Download Free" : `Buy for ${ustxToStx(priceUstx)} STX`}
-          </>
-        ) : (
-          <>
-            <Wallet className="h-4 w-4 mr-2" />
-            Connect Wallet to Buy
-          </>
-        );
-      case "paying":
-        return (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Approve payment in wallet...
-          </>
-        );
-      case "confirming":
-        return (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            {confirmAttempt > 1
-              ? `Waiting for confirmation... (${confirmAttempt})`
-              : "Waiting for confirmation..."}
-          </>
-        );
-      case "downloading":
-        return (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Fetching from IPFS...
-          </>
-        );
-      case "decrypting":
-        return (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Decrypting...
-          </>
-        );
-      case "done":
-        return (
-          <>
-            <Download className="h-4 w-4 mr-2" />
-            Downloaded!
-          </>
-        );
-      case "error":
-        return (
-          <>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </>
-        );
-    }
-  }
-
   const isDisabled =
     step === "checking" ||
     step === "paying" ||
@@ -307,23 +219,58 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
     step === "downloading" ||
     step === "decrypting";
 
-  const buttonClass =
+  const label =
+    step === "checking"
+      ? "Checking access..."
+      : step === "ready"
+      ? "Download Again"
+      : step === "idle"
+      ? connected
+        ? isFree
+          ? "Download Free"
+          : `Buy for ${ustxToStx(priceUstx)} STX`
+        : "Connect Wallet to Buy"
+      : step === "paying"
+      ? "Approve payment in wallet..."
+      : step === "confirming"
+      ? confirmAttempt > 1
+        ? `Waiting for confirmation... (${confirmAttempt})`
+        : "Waiting for confirmation..."
+      : step === "downloading"
+      ? "Fetching from IPFS..."
+      : step === "decrypting"
+      ? "Decrypting..."
+      : step === "done"
+      ? "Downloaded!"
+      : "Try Again";
+
+  const variant =
     step === "done" || step === "ready"
-      ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+      ? "default"
       : step === "error"
-      ? "bg-red-600 text-white hover:bg-red-500"
-      : "btn-primary";
+      ? "destructive"
+      : "default";
 
   return (
     <div className="space-y-2">
-      <button
+      <Button
         onClick={handleClick}
         disabled={isDisabled}
-        className={`w-full font-semibold rounded-lg px-6 py-3 text-sm transition-all ${buttonClass}`}
+        variant={variant}
+        className="w-full"
       >
-        {getButtonContent()}
-      </button>
-      {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+        {step === "checking" || step === "paying" || step === "confirming" || step === "downloading" || step === "decrypting" ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : step === "ready" || step === "done" ? (
+          <Download className="h-4 w-4 mr-2" />
+        ) : step === "error" ? (
+          <RefreshCw className="h-4 w-4 mr-2" />
+        ) : (
+          connected ? <ShoppingCart className="h-4 w-4 mr-2" /> : <Wallet className="h-4 w-4 mr-2" />
+        )}
+        {label}
+      </Button>
+      {error && <p className="text-xs text-destructive text-center">{error}</p>}
     </div>
   );
 }

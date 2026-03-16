@@ -118,6 +118,9 @@ export function ConditionBuilder({ value, onChange }: Props) {
     });
   }
 
+  const inputClass =
+    "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
   return (
     <div className="space-y-3">
       <label className="flex items-center gap-2 cursor-pointer">
@@ -125,21 +128,21 @@ export function ConditionBuilder({ value, onChange }: Props) {
           type="checkbox"
           checked={enabled}
           onChange={toggle}
-          className="rounded border-gray-600 bg-gray-800 text-brand-600 focus:ring-brand-500"
+          className="rounded border-input bg-background text-primary focus:ring-ring"
         />
-        <span className="text-sm font-medium text-gray-300">
+        <span className="text-sm font-medium">
           Add access conditions
         </span>
       </label>
 
       {enabled && (
-        <div className="space-y-3 rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-400">Require</span>
+            <span className="text-muted-foreground">Require</span>
             <select
               value={group.operator}
               onChange={(e) => setOperator(e.target.value as "AND" | "OR")}
-              className="input w-auto py-1 px-2"
+              className={`${inputClass} w-auto`}
             >
               <option value="AND">ALL conditions (AND)</option>
               <option value="OR">ANY condition (OR)</option>
@@ -149,13 +152,13 @@ export function ConditionBuilder({ value, onChange }: Props) {
           {group.conditions.map((cond) => (
             <div
               key={cond.id}
-              className="space-y-2 rounded-lg border border-gray-700 bg-gray-900/50 p-3"
+              className="space-y-2 rounded-lg border border-border bg-background/50 p-3"
             >
               <div className="flex items-center justify-between">
                 <select
                   value={cond.method}
                   onChange={(e) => handleMethodChange(cond.id, e.target.value)}
-                  className="input w-auto py-1 px-2 text-xs"
+                  className={`${inputClass} w-auto`}
                 >
                   {METHODS.map((m) => (
                     <option key={m.value} value={m.value}>
@@ -166,7 +169,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
                 <button
                   type="button"
                   onClick={() => removeCondition(cond.id)}
-                  className="rounded p-1 text-gray-500 hover:text-red-400 hover:bg-gray-800"
+                  className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-muted"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -174,7 +177,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
 
               {cond.method === "x402-payment" && (
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Price (STX)</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Price (STX)</label>
                   <input
                     type="number"
                     step="0.000001"
@@ -182,7 +185,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
                     placeholder="e.g. 5.0"
                     value={x402PriceStx(cond)}
                     onChange={(e) => handleX402PriceChange(cond.id, e.target.value)}
-                    className="input text-xs"
+                    className={inputClass}
                   />
                 </div>
               )}
@@ -197,7 +200,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
                   onChange={(e) =>
                     updateCondition(cond.id, { contractAddress: e.target.value })
                   }
-                  className="input text-xs"
+                  className={inputClass}
                 />
               )}
 
@@ -210,7 +213,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
                     onChange={(e) =>
                       updateCondition(cond.id, { function: e.target.value })
                     }
-                    className="input text-xs"
+                    className={inputClass}
                   />
                   <input
                     type="text"
@@ -224,7 +227,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
                           .filter(Boolean),
                       })
                     }
-                    className="input text-xs"
+                    className={inputClass}
                   />
                 </>
               )}
@@ -241,7 +244,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
                         },
                       })
                     }
-                    className="input w-20 py-1 px-2 text-xs"
+                    className={`${inputClass} w-20`}
                   >
                     {COMPARATORS.map((c) => (
                       <option key={c} value={c}>
@@ -261,7 +264,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
                         },
                       })
                     }
-                    className="input flex-1 text-xs"
+                    className={`${inputClass} flex-1`}
                   />
                 </div>
               )}
@@ -271,7 +274,7 @@ export function ConditionBuilder({ value, onChange }: Props) {
           <button
             type="button"
             onClick={addCondition}
-            className="flex items-center gap-1.5 rounded-lg border border-dashed border-gray-700 px-3 py-2 text-xs text-gray-400 transition-colors hover:border-brand-500 hover:text-brand-400 w-full justify-center"
+            className="flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary w-full justify-center"
           >
             <Plus className="h-3.5 w-3.5" />
             Add condition

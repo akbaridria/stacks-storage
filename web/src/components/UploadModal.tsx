@@ -7,6 +7,10 @@ import { uploadToIpfs, registerFile, type ConditionGroup } from "@/lib/acn";
 import { generateKey, encryptFile, serializeKey, sha256Hex } from "@/lib/crypto";
 import { formatFileSize, FILE_TYPES } from "@/lib/constants";
 import { ConditionBuilder, extractPriceFromConditions } from "./ConditionBuilder";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Props {
   open: boolean;
@@ -110,153 +114,150 @@ export function UploadModal({ open, onClose, onSuccess }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold">Upload File</h2>
-          <button
-            onClick={handleClose}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-800 hover:text-gray-300"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold">Upload File</h2>
+            <Button variant="ghost" size="icon" onClick={handleClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
 
-        {step === "form" && (
-          <div className="space-y-4">
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={onDrop}
-              onClick={() => inputRef.current?.click()}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
-                dragOver
-                  ? "border-brand-500 bg-brand-500/5"
-                  : file
-                  ? "border-emerald-600 bg-emerald-600/5"
-                  : "border-gray-700 hover:border-gray-600"
-              }`}
-            >
-              <input
-                ref={inputRef}
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFile(f);
-                }}
-              />
-              {file ? (
-                <>
-                  <FileIcon className="h-8 w-8 text-emerald-400 mb-2" />
-                  <p className="text-sm font-medium">{file.name}</p>
-                  <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                </>
-              ) : (
-                <>
-                  <Upload className="h-8 w-8 text-gray-600 mb-2" />
-                  <p className="text-sm text-gray-400">
-                    Drag & drop or click to select
-                  </p>
-                </>
-              )}
-            </div>
-
-            <div>
-              <label className="label">Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="My awesome file"
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="label">Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What is this file?"
-                rows={2}
-                className="input resize-none"
-              />
-            </div>
-
-            <div>
-              <label className="label">Type</label>
-              <select
-                value={fileType}
-                onChange={(e) => setFileType(e.target.value)}
-                className="input"
+          {step === "form" && (
+            <div className="space-y-4">
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={onDrop}
+                onClick={() => inputRef.current?.click()}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
+                  dragOver
+                    ? "border-primary bg-primary/5"
+                    : file
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
               >
-                {FILE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <ConditionBuilder value={conditions} onChange={setConditions} />
-
-            {error && (
-              <p className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
-                {error}
-              </p>
-            )}
-
-            <button
-              onClick={handleUpload}
-              disabled={!file || !address}
-              className="btn-primary w-full"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Encrypt & Upload
-            </button>
-          </div>
-        )}
-
-        {step === "uploading" && (
-          <div className="flex flex-col items-center py-12 gap-4">
-            <Loader2 className="h-10 w-10 text-brand-400 animate-spin" />
-            <p className="text-sm text-gray-400">{status}</p>
-          </div>
-        )}
-
-        {step === "done" && (
-          <div className="flex flex-col items-center py-8 gap-4">
-            <div className="rounded-full bg-emerald-500/10 p-3">
-              <Check className="h-8 w-8 text-emerald-400" />
-            </div>
-            <p className="text-lg font-semibold">Upload Complete</p>
-            <div className="w-full space-y-2 rounded-lg bg-gray-800/50 p-4 text-xs">
-              <div className="flex justify-between">
-                <span className="text-gray-500">File ID</span>
-                <span className="font-mono text-gray-300 truncate max-w-[200px]">
-                  {resultFileId}
-                </span>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                  }}
+                />
+                {file ? (
+                  <>
+                    <FileIcon className="h-8 w-8 text-primary mb-2" />
+                    <p className="text-sm font-medium">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Drag & drop or click to select
+                    </p>
+                  </>
+                )}
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Transaction</span>
-                <span className="font-mono text-brand-400 truncate max-w-[200px]">
-                  {resultTxId}
-                </span>
+
+              <div>
+                <Label>Name</Label>
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My awesome file"
+                />
               </div>
+
+              <div>
+                <Label>Description</Label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What is this file?"
+                  rows={2}
+                  className="flex min-h-20 w-full rounded-md border border-input bg-background px-4 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                />
+              </div>
+
+              <div>
+                <Label>Type</Label>
+                <select
+                  value={fileType}
+                  onChange={(e) => setFileType(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {FILE_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <ConditionBuilder value={conditions} onChange={setConditions} />
+
+              {error && (
+                <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+
+              <Button
+                onClick={handleUpload}
+                disabled={!file || !address}
+                className="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Encrypt & Upload
+              </Button>
             </div>
-            <button
-              onClick={() => {
-                handleClose();
-                onSuccess();
-              }}
-              className="btn-primary w-full"
-            >
-              Done
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+
+          {step === "uploading" && (
+            <div className="flex flex-col items-center py-12 gap-4">
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              <p className="text-sm text-muted-foreground">{status}</p>
+            </div>
+          )}
+
+          {step === "done" && (
+            <div className="flex flex-col items-center py-8 gap-4">
+              <div className="rounded-full bg-primary/10 p-3">
+                <Check className="h-8 w-8 text-primary" />
+              </div>
+              <p className="text-lg font-semibold">Upload Complete</p>
+              <div className="w-full space-y-2 rounded-lg bg-muted p-4 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">File ID</span>
+                  <span className="font-mono truncate max-w-[200px]">
+                    {resultFileId}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Transaction</span>
+                  <span className="font-mono text-primary truncate max-w-[200px]">
+                    {resultTxId}
+                  </span>
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  handleClose();
+                  onSuccess();
+                }}
+                className="w-full"
+              >
+                Done
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
