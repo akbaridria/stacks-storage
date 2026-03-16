@@ -90,17 +90,20 @@ export class StacksStorage {
     // 3. Register with ACN (stores key + conditions, triggers on-chain register-file)
     const encryptedKey = serializeKey(iv, key);
 
+    const registerBody: Record<string, unknown> = {
+      fileId,
+      cid,
+      seller: options.seller,
+      encryptedKey,
+      conditions: options.conditions ?? null,
+    };
+    if (options.priceUstx !== undefined) {
+      registerBody.priceUstx = options.priceUstx;
+    }
     const registerRes = await fetch(`${this.acnUrl}/upload/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileId,
-        cid,
-        priceUstx: options.priceUstx,
-        seller: options.seller,
-        encryptedKey,
-        conditions: options.conditions ?? null,
-      }),
+      body: JSON.stringify(registerBody),
     });
     if (!registerRes.ok) {
       const err = await registerRes.json().catch(() => ({}));

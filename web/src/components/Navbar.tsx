@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
 import { truncateAddress } from "@/lib/constants";
-import { Shield, LogOut, ArrowRight, Power } from "lucide-react";
+import { ArrowRight, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
@@ -13,11 +13,8 @@ export function Navbar() {
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-lg">
-            <Shield className="h-6 w-6 text-primary" />
-            <span>
-              Stacks <span className="text-primary">Storage</span>
-            </span>
+          <Link href="/" className="font-bold text-lg">
+            Stacks <span className="text-primary">Storage</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">

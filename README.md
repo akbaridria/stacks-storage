@@ -105,11 +105,11 @@ The buyer pays a fixed amount of STX. This is the default and most common condit
 {
   id: 1,
   method: 'x402-payment',
-  returnValueTest: { comparator: '==', value: 'true' }
+  returnValueTest: { comparator: '==', value: '5000000' }   // 5 STX in microSTX
 }
 ```
 
-No `contractAddress` needed. Payment amount and recipient are defined separately at upload time via `priceUstx` and are stored on-chain.
+No `contractAddress` needed. The payment amount is set in the condition's `returnValueTest.value` (in microSTX) and is stored on-chain with the file.
 
 ---
 
@@ -209,12 +209,12 @@ The most common pattern: free for token holders, paid for everyone else.
     {
       id: 2,
       method: 'x402-payment',
-      returnValueTest: { comparator: '==', value: 'true' }
+      returnValueTest: { comparator: '==', value: '5000000' }   // 5 STX
     }
   ]
 }
 // token holders → free access
-// everyone else → pays STX
+// everyone else → pays 5 STX
 ```
 
 #### AND — satisfy all conditions
@@ -234,7 +234,7 @@ All conditions must pass. Use to combine payment with membership, or NFT ownersh
     {
       id: 2,
       method: 'x402-payment',
-      returnValueTest: { comparator: '==', value: 'true' }
+      returnValueTest: { comparator: '==', value: '5000000' }   // 5 STX
     }
   ]
 }
@@ -267,6 +267,8 @@ The SDK works in both browser and Node.js environments. AES-256 encryption uses 
 
 ### Seller: Upload a File
 
+Price is set only via the **x402-payment** condition (the condition's `returnValueTest.value` is the amount in microSTX). There is no top-level price field.
+
 ```typescript
 import { StacksStorage } from '@stacks-storage/sdk'
 
@@ -275,21 +277,28 @@ const storage = new StacksStorage({
   network: 'mainnet'
 })
 
-// Simple: x402 payment only
+// Paid file: 5 STX — use x402-payment condition with value in microSTX
 const { fileId, cid, txId } = await storage.upload(file, {
-  priceUstx: 5_000_000   // 5 STX
+  seller: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
+  conditions: {
+    operator: 'AND',
+    conditions: [{
+      id: 1,
+      method: 'x402-payment',
+      returnValueTest: { comparator: '==', value: '5000000' }   // 5 STX
+    }]
+  }
 })
 
 console.log(`File registered: ${fileId}`)
 console.log(`IPFS CID: ${cid}`)
 ```
 
-Upload with conditions:
+Upload with conditions (e.g. free for token holders, 5 STX for everyone else):
 
 ```typescript
-// Free for token holders, 5 STX for everyone else
 const { fileId } = await storage.upload(file, {
-  priceUstx: 5_000_000,
+  seller: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
   conditions: {
     operator: 'OR',
     conditions: [
@@ -302,7 +311,7 @@ const { fileId } = await storage.upload(file, {
       {
         id: 2,
         method: 'x402-payment',
-        returnValueTest: { comparator: '==', value: 'true' }
+        returnValueTest: { comparator: '==', value: '5000000' }   // 5 STX for others
       }
     ]
   }
@@ -342,9 +351,9 @@ What happens under the hood:
 ### Condition Examples
 
 ```typescript
-// Time-locked document — unlocks at block 160000
+// Time-locked document — unlocks at block 160000 (free)
 await storage.upload(file, {
-  priceUstx: 0,
+  seller: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
   conditions: {
     operator: 'AND',
     conditions: [{
@@ -355,9 +364,9 @@ await storage.upload(file, {
   }
 })
 
-// NFT-gated research report
+// NFT-gated research report — 2 STX and must own NFT
 await storage.upload(file, {
-  priceUstx: 2_000_000,
+  seller: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
   conditions: {
     operator: 'AND',
     conditions: [
@@ -370,15 +379,15 @@ await storage.upload(file, {
       {
         id: 2,
         method: 'x402-payment',
-        returnValueTest: { comparator: '==', value: 'true' }
+        returnValueTest: { comparator: '==', value: '2000000' }   // 2 STX
       }
     ]
   }
 })
 
-// DAO governance: custom Clarity contract check
+// DAO governance: custom Clarity contract check (free for members)
 await storage.upload(file, {
-  priceUstx: 0,
+  seller: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
   conditions: {
     operator: 'AND',
     conditions: [{
@@ -387,7 +396,7 @@ await storage.upload(file, {
       contractAddress: 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.dao-governance',
       function: 'is-member',
       parameters: [':userAddress'],
-      returnValueTest: { comparator: '==', value: 'true' }
+      returnValueTest: { comparator: '==', value: 'true' }   // boolean for is-member
     }]
   }
 })
@@ -498,7 +507,7 @@ Register a file with the ACN. Stores the AES key and triggers the Clarity `regis
 {
   "fileId":       "string — sha256 of CID",
   "cid":          "string — IPFS CID",
-  "priceUstx":    1000000,
+  "seller":       "string — Stacks address",
   "encryptedKey": "string — iv:aesKeyBase64",
   "conditions": {
     "operator": "OR",
@@ -506,6 +515,8 @@ Register a file with the ACN. Stores the AES key and triggers the Clarity `regis
   }
 }
 ```
+
+`priceUstx` is optional. When omitted, the ACN derives it from the x402-payment condition (the condition's `value` in microSTX). Include `priceUstx` only if you need to override that.
 
 **Response `201`:**
 

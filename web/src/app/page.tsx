@@ -95,9 +95,10 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            Upload, encrypt, and gate access to files on IPFS. Define who can
-            decrypt — by payment, token balance, NFT ownership, or custom logic.
-            Powered by Stacks smart contracts and x402 instant payments.
+            Sell ebooks, courses, music, or any file — and get paid in STX. Buyers
+            pay once, download instantly, no sign-ups. Your content, your rules:
+            set a price, gate by tokens or NFTs, or keep it free. Powered by
+            Stacks and Bitcoin.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">

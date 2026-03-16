@@ -33,7 +33,9 @@ export interface StacksStorageConfig {
 }
 
 export interface UploadOptions {
-  priceUstx: number;
+  /** Optional. If omitted, price is derived from the x402-payment condition (when present). */
+  priceUstx?: number;
+  /** Access conditions. Use an x402-payment condition to set the price (value = amount in microSTX). */
   conditions?: ConditionGroup | null;
 }
 
