@@ -274,7 +274,7 @@ import { StacksStorage } from '@stacks-storage/sdk'
 
 const storage = new StacksStorage({
   acnUrl:  'https://acn.stacks-storage.xyz',
-  network: 'mainnet'
+  network: 'testnet'
 })
 
 // Paid file: 5 STX — use x402-payment condition with value in microSTX
@@ -325,7 +325,7 @@ import { StacksStorage } from '@stacks-storage/sdk'
 
 const storage = new StacksStorage({
   acnUrl:  'https://acn.stacks-storage.xyz',
-  network: 'mainnet'
+  network: 'testnet'
 })
 
 const { file, txId } = await storage.access('your-file-id', {
@@ -456,7 +456,7 @@ The marketplace is a public feed of all active files listed on Stacks Storage.
 - File name, description, type, and size
 - Price in STX (converted to USD at current rate)
 - Access conditions shown clearly — "Must hold 100 MY-TOKEN or pay 5 STX"
-- When the connected wallet has passed all requirements, a "You have access" state is shown (backend checks via `GET /files/:fileId?address=...` and returns `accessGranted`)
+- When the connected wallet has passed all requirements, a "You have access" state is shown. The backend returns `accessGranted` and `conditionResults` (per-condition true/false) from `GET /files/:fileId?address=...` so the UI can show which conditions are met or not met
 - Seller's other files
 - Buy button — connects Hiro wallet, handles x402 payment, triggers download
 
@@ -540,7 +540,10 @@ List all files (public info). Query: optional `seller` to filter by seller. Resp
 
 Get public info for a single file (no encrypted key). Response includes on-chain data: `accessCount`, `active`.
 
-**Optional query:** `address` — when provided, the ACN checks whether this address has passed all access requirements (payment + conditions) and includes `accessGranted: true | false` in the response. Used by the file detail page to show "You have access" for the connected wallet.
+**Optional query:** `address` — when provided, the ACN evaluates conditions for this address and adds:
+
+- `accessGranted`: `true` if the address satisfies all requirements (payment + conditions), else `false`. Used by the file detail page to show "You have access".
+- `conditionResults`: array of `{ id, method, met }` (one per condition), where `met` is `true` or `false`. The UI can show which conditions are met or not met for the connected wallet.
 
 ---
 

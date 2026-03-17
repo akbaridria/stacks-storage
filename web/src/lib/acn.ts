@@ -13,11 +13,20 @@ export interface PublicFile {
   fileSize: number;
 }
 
+/** Per-condition evaluation when GET /files/:fileId is called with ?address= */
+export interface ConditionResult {
+  id: number;
+  method: string;
+  met: boolean;
+}
+
 export interface FileDetail extends PublicFile {
   accessCount: number;
   active: boolean;
   /** Present when request included ?address=; true if that address has passed all access requirements. */
   accessGranted?: boolean;
+  /** Present when ?address= was provided; per-condition true/false for UI. */
+  conditionResults?: ConditionResult[];
 }
 
 export interface ConditionGroup {

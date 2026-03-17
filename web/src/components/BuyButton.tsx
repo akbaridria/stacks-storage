@@ -13,6 +13,10 @@ interface Props {
   priceUstx: number;
   seller: string;
   fileName: string;
+  /** When true, x402-payment condition is met (user has paid). Disable buy to avoid double payment. */
+  paymentConditionMet?: boolean;
+  /** When true, all conditions are met and user has access. */
+  accessGranted?: boolean;
 }
 
 type BuyStep =
@@ -69,7 +73,7 @@ async function pollForAccess(
   throw new Error("Timed out waiting for transaction confirmation. Check the explorer and try again.");
 }
 
-export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
+export function BuyButton({ fileId, priceUstx, seller, fileName, paymentConditionMet, accessGranted }: Props) {
   const { address, connected, connect } = useWallet();
   const [step, setStep] = useState<BuyStep>("checking");
   const [confirmAttempt, setConfirmAttempt] = useState(0);
@@ -77,6 +81,7 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
   const cachedAccess = useRef<AccessResult | null>(null);
 
   const isFree = priceUstx === 0;
+  const paidButOtherConditionsNotMet = Boolean(paymentConditionMet && !accessGranted && !isFree);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,7 +222,8 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
     step === "paying" ||
     step === "confirming" ||
     step === "downloading" ||
-    step === "decrypting";
+    step === "decrypting" ||
+    paidButOtherConditionsNotMet;
 
   const label =
     step === "checking"
@@ -225,7 +231,9 @@ export function BuyButton({ fileId, priceUstx, seller, fileName }: Props) {
       : step === "ready"
       ? "Download Again"
       : step === "idle"
-      ? connected
+      ? paidButOtherConditionsNotMet
+        ? "Already paid — other conditions not met"
+        : connected
         ? isFree
           ? "Download Free"
           : `Buy for ${ustxToStx(priceUstx)} STX`

@@ -319,7 +319,7 @@ upload file
                 </p>
                 <pre className="bg-muted rounded-lg p-4 text-xs font-mono overflow-x-auto">{`const storage = new StacksStorage({
   acnUrl:  'https://acn.stacks-storage.xyz',
-  network: 'mainnet'
+  network: 'testnet'
 })
 
 // Paid file: 5 STX — use x402-payment condition with value in microSTX
@@ -440,6 +440,28 @@ const { fileId, cid, txId } = await storage.upload(file, {
                       {"{ txId, fileId, cid }"}
                     </code>{" "}
                     (201).
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4 space-y-2">
+                  <h3 className="font-medium text-foreground">
+                    Files Endpoints
+                  </h3>
+                  <p>
+                    <strong>GET /files</strong> — List files. Query: optional{" "}
+                    <code className="bg-muted px-1 rounded">seller</code>.
+                    Response: <code className="bg-muted px-1 rounded">{"{ files }"}</code>.
+                  </p>
+                  <p>
+                    <strong>GET /files/:fileId</strong> — Public file info +
+                    <code className="bg-muted px-1 rounded"> accessCount</code>,{" "}
+                    <code className="bg-muted px-1 rounded">active</code>. Optional query{" "}
+                    <code className="bg-muted px-1 rounded">address</code>: when provided,
+                    response includes <code className="bg-muted px-1 rounded">accessGranted</code> (boolean) and{" "}
+                    <code className="bg-muted px-1 rounded">conditionResults</code> (array of{" "}
+                    <code className="bg-muted px-1 rounded">{"{ id, method, met }"}</code>) so the UI can show which conditions are true/false.
                   </p>
                 </CardContent>
               </Card>

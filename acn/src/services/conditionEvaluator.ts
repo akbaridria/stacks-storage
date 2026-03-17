@@ -99,3 +99,40 @@ export async function evaluate(
     ? results.every(Boolean)
     : results.some(Boolean);
 }
+
+export type ConditionResult = {
+  id: number;
+  method: Condition["method"];
+  met: boolean;
+};
+
+/**
+ * Evaluate all conditions and return overall access plus per-condition results
+ * (for GET /files/:fileId?address= to show which conditions are true/false in the UI).
+ */
+export async function evaluateWithDetails(
+  group: ConditionGroup | null,
+  buyerAddress: string,
+  paymentVerified: boolean
+): Promise<{ accessGranted: boolean; conditionResults: ConditionResult[] }> {
+  if (!group || group.conditions.length === 0) {
+    return { accessGranted: true, conditionResults: [] };
+  }
+
+  const results = await Promise.all(
+    group.conditions.map((c) => evaluateSingle(c, buyerAddress, paymentVerified))
+  );
+
+  const conditionResults: ConditionResult[] = group.conditions.map((c, i) => ({
+    id: c.id,
+    method: c.method,
+    met: results[i] ?? false,
+  }));
+
+  const accessGranted =
+    group.operator === "AND"
+      ? results.every(Boolean)
+      : results.some(Boolean);
+
+  return { accessGranted, conditionResults };
+}

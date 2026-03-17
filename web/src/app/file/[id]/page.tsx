@@ -109,6 +109,9 @@ export default function FileDetailPage() {
 
   const Icon = typeIcons[file.fileType] ?? File;
   const isFree = file.priceUstx === 0;
+  const paymentConditionMet = file.conditionResults?.some(
+    (r) => r.method === "x402-payment" && r.met
+  ) ?? false;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
@@ -227,22 +230,43 @@ export default function FileDetailPage() {
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {file.conditions.conditions.map((c) => (
-                    <div
-                      key={c.id}
-                      className="rounded-lg bg-muted border border-border px-4 py-2.5 text-sm"
-                    >
-                      <span className="font-medium">{conditionLabel(c.method)}</span>
-                      {c.contractAddress && (
-                        <span className="ml-2 text-xs text-muted-foreground font-mono">
-                          {truncateAddress(c.contractAddress)}
+                  {file.conditions.conditions.map((c) => {
+                    const result = file.conditionResults?.find((r) => r.id === c.id);
+                    const met = result?.met;
+                    return (
+                      <div
+                        key={c.id}
+                        className={`rounded-lg border px-4 py-2.5 text-sm flex items-center justify-between gap-2 ${
+                          met === true
+                            ? "bg-primary/5 border-primary/20"
+                            : met === false
+                            ? "bg-destructive/5 border-destructive/20"
+                            : "bg-muted border-border"
+                        }`}
+                      >
+                        <span>
+                          <span className="font-medium">{conditionLabel(c.method)}</span>
+                          {c.contractAddress && (
+                            <span className="ml-2 text-xs text-muted-foreground font-mono">
+                              {truncateAddress(c.contractAddress)}
+                            </span>
+                          )}
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {c.returnValueTest.comparator} {c.returnValueTest.value}
+                          </span>
                         </span>
-                      )}
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {c.returnValueTest.comparator} {c.returnValueTest.value}
-                      </span>
-                    </div>
-                  ))}
+                        {met !== undefined && (
+                          <span
+                            className={`shrink-0 text-xs font-medium ${
+                              met ? "text-primary" : "text-destructive"
+                            }`}
+                          >
+                            {met ? "Met" : "Not met"}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -277,6 +301,8 @@ export default function FileDetailPage() {
                   priceUstx={file.priceUstx}
                   seller={file.seller}
                   fileName={file.name}
+                  paymentConditionMet={paymentConditionMet}
+                  accessGranted={file.accessGranted}
                 />
               ) : (
                 <div className="rounded-lg bg-destructive/10 p-4 text-center text-sm text-destructive">
